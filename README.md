@@ -40,3 +40,9 @@ qrcode_gui 是源代码
 * ZXing
 * poi （使用的是之前写的模板 https://github.com/ChengCuotuo/Poi/tree/master/src/main/java/cn/nianzuochen/reportform/util  工具类中可以找到，将读取文件的方式从 MultipartFile改为 file） 
 * JDBC
+
+ 
+
+贴张图：
+
+![hello](C:\Users\-pc\Desktop\qrcode\qrcode\hello.png)
