@@ -45,4 +45,4 @@ qrcode_gui 是源代码
 
 贴张图：
 
-![hello](C:\Users\-pc\Desktop\qrcode\qrcode\hello.png)
+![hello](https://github.com/ChengCuotuo/qrcode/blob/master/hello.png)
