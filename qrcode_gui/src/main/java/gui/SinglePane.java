@@ -100,7 +100,7 @@ public class SinglePane extends Pane {
         clickCbo();
 
         // 从 excel 导出的窗体
-        Scene excelScene = new Scene(excelPane, 510, 250);
+        Scene excelScene = new Scene(excelPane, 510, 270);
         exportFromExcelStage.setScene(excelScene);
         exportFromExcelStage.setTitle("QRCode_NianZuochen");
         exportFromExcelStage.setResizable(false);
