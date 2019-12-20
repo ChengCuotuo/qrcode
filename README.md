@@ -6,6 +6,8 @@
 
 生成的图片的格式为 jpg
 
+运行的速度收到电脑处理速度，处理的数据量，content 数据的复杂度，如果从数据库中读取数据还受到网速的影响，使用学习记录里面的 excel 测试数据 1000 条数据 content 长度为 20 字符串，耗时 一分半。
+
 #### 从 excel 文件中读取
 
 使用 POI 进行读取
@@ -21,3 +23,20 @@
 只支持从 MySQL  数据库中读取数据，在正确连接之后选择对应的表以及content 字段和 name 字段就可以了。_（字段名称并没有限定）_
 
 
+
+#### 文件介绍
+
+exe 文件夹是使用 idea 将 javafx 项目生成的 exe 文件，window 下点击 qrcode_gui.exe 就可执行
+
+qrcode_gui 是源代码
+
+学习记录 有设计的思路，ppt 画的 ui ，学习记的笔记，还有一个 excel 测试数据
+
+
+
+#### 技术点
+
+* JavaFX
+* ZXing
+* poi （使用的是之前写的模板 https://github.com/ChengCuotuo/Poi/tree/master/src/main/java/cn/nianzuochen/reportform/util  工具类中可以找到，将读取文件的方式从 MultipartFile改为 file） 
+* JDBC
