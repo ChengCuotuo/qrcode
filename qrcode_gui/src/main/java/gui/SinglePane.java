@@ -1,5 +1,7 @@
 package gui;
 
+import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingFXUtils;
@@ -20,6 +22,7 @@ import mysql.ConnectDataBase;
 import entity.Entity;
 import poi.ExtractExcel2Object;
 import qrcode.CreateQRCode;
+import qrcode.ParallelCreateQRCode;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -59,6 +62,8 @@ public class SinglePane extends Pane {
     // 成功提示面板
     private Stage successStage = new Stage();
     private SuccessPane successPane = new SuccessPane();
+    private Timeline loadAnimation;
+
     // 警告提示面板
     private Stage warningStage = new Stage();
     private WarningPane warningPane = new WarningPane();
@@ -74,7 +79,7 @@ public class SinglePane extends Pane {
         getChildren().add(vb);
 
         // 成功面板
-        Scene successScene = new Scene(successPane, 400, 400);
+        Scene successScene = new Scene(successPane,600, 400);
         successStage.setScene(successScene);
         successStage.setTitle("QRCode_NianZuochen");
         successStage.setResizable(false);
@@ -277,20 +282,24 @@ public class SinglePane extends Pane {
                     warningPane.setLbWarning("指定存储路径不存在");
                     warningStage.show();
                 } else {
-                    //            System.out.println(sourceFile + ", " + targetDirectory);
+                    successPane.waitingCreate();
+                    successStage.show();
                     Class clazz = new Entity().getClass();
                     ExtractExcel2Object<Entity> excel2Object = new ExtractExcel2Object<>(clazz);
                     File file = new File(sourceFile);
                     if (file.exists()) {
                         List<Entity> entities = excel2Object.extract(file);
-                        for (Entity entity : entities) {
-                            BufferedImage bufferedImage = CreateQRCode.create(entity.getContent(), width, height);
-                            String newPath = targetDirectory + File.separator + entity.getName() + "." + format;
-                            boolean result = CreateQRCode.storeImage(bufferedImage, newPath, format);
-//                    System.out.println(result);
-                        }
+                        ParallelCreateQRCode parallelCreateQRCode =
+                                new ParallelCreateQRCode(width, height, format, targetDirectory);
+                        parallelCreateQRCode.parallelCreate(entities);
+//                        for (Entity entity : entities) {
+//                            BufferedImage bufferedImage = CreateQRCode.create(entity.getContent(), width, height);
+//                            String newPath = targetDirectory + File.separator + entity.getName() + "." + format;
+//                            CreateQRCode.storeImage(bufferedImage, newPath, format);
+//                        }
                     }
-                    successStage.show();
+                    successPane.finishCreate();
+
                 }
             }
 
@@ -355,13 +364,18 @@ public class SinglePane extends Pane {
                     warningPane.setLbWarning("指定存储路径不存在");
                     warningStage.show();
                 } else {
-                    for (Entity entity : entities) {
-                        BufferedImage bufferedImage = CreateQRCode.create(entity.getContent(), width, height);
-                        String newPath = exportPath + File.separator + entity.getName() + "." + format;
-                        boolean result = CreateQRCode.storeImage(bufferedImage, newPath, format);
-//                        System.out.println(result);
-                    }
+                    successPane.waitingCreate();
                     successStage.show();
+                    ParallelCreateQRCode parallelCreateQRCode =
+                            new ParallelCreateQRCode(width, height, format, exportPath);
+                    parallelCreateQRCode.parallelCreate(entities);
+//                    for (Entity entity : entities) {
+//                        BufferedImage bufferedImage = CreateQRCode.create(entity.getContent(), width, height);
+//                        String newPath = exportPath + File.separator + entity.getName() + "." + format;
+//                        boolean result = CreateQRCode.storeImage(bufferedImage, newPath, format);
+////                        System.out.println(result);
+//                    }
+                    successPane.finishCreate();
                 }
             }
 
