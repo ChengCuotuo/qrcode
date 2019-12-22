@@ -8,12 +8,9 @@ import javafx.stage.Stage;
 public class TestAnimation extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        StackPane pane = new StackPane();
-        LoadingImagview imagview = new LoadingImagview();
-        imagview.createLoadingAnimation();
-        imagview.getloadingAnimation().play();
-        pane.getChildren().add(imagview);
-        Scene scene = new Scene(pane, 400, 400);
+        SuccessPane pane = new SuccessPane();
+        pane.waitingCreate();
+        Scene scene = new Scene(pane, 600, 400);
         primaryStage.setScene(scene);
         primaryStage.show();
     }

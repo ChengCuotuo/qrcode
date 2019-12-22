@@ -30,6 +30,7 @@ import java.util.List;
 
 
 public class SinglePane extends Pane {
+    private ParallelCreateQRCode parallelCreateQRCode;
 
     private ImageView qrcodeImg = new ImageView();
     private HBox hbHead = new HBox(10);
@@ -62,7 +63,6 @@ public class SinglePane extends Pane {
     // 成功提示面板
     private Stage successStage = new Stage();
     private SuccessPane successPane = new SuccessPane();
-    private Timeline loadAnimation;
 
     // 警告提示面板
     private Stage warningStage = new Stage();
@@ -83,6 +83,7 @@ public class SinglePane extends Pane {
         successStage.setScene(successScene);
         successStage.setTitle("QRCode_NianZuochen");
         successStage.setResizable(false);
+
 
         // 警告面板
         Scene warningScene = new Scene(warningPane, 400, 400);
@@ -229,7 +230,7 @@ public class SinglePane extends Pane {
                     warningPane.setLbWarning("指定存储路径不存在");
                     warningStage.show();
                 } else {
-                    //            System.out.println(fileName + ", " + fileFormat + ", " + width + ", " + height + ", " + path);
+                    // System.out.println(fileName + ", " + fileFormat + ", " + width + ", " + height + ", " + path);
                     // 获取 BufferedImage 并写入文件
                     String newPath = path + File.separator + fileName + "." + fileFormat;
                     bfqrcode = CreateQRCode.create(input.getText(), width, height);
@@ -264,10 +265,10 @@ public class SinglePane extends Pane {
         Button btCofirm = excelPane.getBtConfirm();
         btCofirm.setOnAction(e -> {
             String sourceFile = excelPane.getSourceFilePath();
-            String targetDirectory = excelPane.getExportDirectory();
             Integer width = excelPane.getPWidth();
             Integer height = excelPane.getPHeight();
             String format = excelPane.getPFileFormat();
+            String targetDirectory = excelPane.getExportDirectory();
 
             if (sourceFile == null || targetDirectory == null || width == null || height == null || format == null) {
                 warningPane.setLbWarning("信息不完整");
@@ -284,26 +285,55 @@ public class SinglePane extends Pane {
                 } else {
                     successPane.waitingCreate();
                     successStage.show();
-                    Class clazz = new Entity().getClass();
-                    ExtractExcel2Object<Entity> excel2Object = new ExtractExcel2Object<>(clazz);
-                    File file = new File(sourceFile);
-                    if (file.exists()) {
-                        List<Entity> entities = excel2Object.extract(file);
-                        ParallelCreateQRCode parallelCreateQRCode =
-                                new ParallelCreateQRCode(width, height, format, targetDirectory);
-                        parallelCreateQRCode.parallelCreate(entities);
-//                        for (Entity entity : entities) {
-//                            BufferedImage bufferedImage = CreateQRCode.create(entity.getContent(), width, height);
-//                            String newPath = targetDirectory + File.separator + entity.getName() + "." + format;
-//                            CreateQRCode.storeImage(bufferedImage, newPath, format);
-//                        }
-                    }
-                    successPane.finishCreate();
+                    // 在新的线程中完成并行导出操作，此时主线程在控制面板
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Class clazz = new Entity().getClass();
+                            ExtractExcel2Object<Entity> excel2Object = new ExtractExcel2Object<>(clazz);
+                            File file = new File(sourceFile);
+                            if (file.exists()) {
+                                List<Entity> entities = excel2Object.extract(file);
+                                parallelCreateQRCode =
+                                        new ParallelCreateQRCode(width, height, format, targetDirectory);
+                                parallelCreateQRCode.parallelCreate(entities);
+                            }
+                            // 当 parallelCreateQRCode.getFinished() 为 true 表示导出完成
+                            while (true) {
+                                if (parallelCreateQRCode.getFinished()) {
+                                    successPane.stopWaitingAnimation();
+                                    // 非主线程修改面板要使用 Platform.runLater进行修改
+                                    Platform.runLater(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            successPane.finishCreate();
+                                        }
+                                    });
+                                    break;
+                                } else  {
+                                    // 没 0.5s 检查一次
+                                    try {
+                                        Thread.sleep(500);
+                                    } catch (InterruptedException e1) {
+                                        e1.printStackTrace();
+                                    }
+                                }
+                            }
+
+                        }
+                    }).start();
 
                 }
             }
 
         });
+    }
+
+    private class ExportFromExcelThread implements Runnable {
+        @Override
+        public void run() {
+
+        }
     }
 
     // 确认连接按钮
@@ -366,16 +396,34 @@ public class SinglePane extends Pane {
                 } else {
                     successPane.waitingCreate();
                     successStage.show();
-                    ParallelCreateQRCode parallelCreateQRCode =
-                            new ParallelCreateQRCode(width, height, format, exportPath);
-                    parallelCreateQRCode.parallelCreate(entities);
-//                    for (Entity entity : entities) {
-//                        BufferedImage bufferedImage = CreateQRCode.create(entity.getContent(), width, height);
-//                        String newPath = exportPath + File.separator + entity.getName() + "." + format;
-//                        boolean result = CreateQRCode.storeImage(bufferedImage, newPath, format);
-////                        System.out.println(result);
-//                    }
-                    successPane.finishCreate();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ParallelCreateQRCode parallelCreateQRCode =
+                                    new ParallelCreateQRCode(width, height, format, exportPath);
+                            parallelCreateQRCode.parallelCreate(entities);
+                            while (true) {
+                                if (parallelCreateQRCode.getFinished()) {
+                                    successPane.stopWaitingAnimation();
+                                    // 非主线程修改面板要使用 Platform.runLater进行修改
+                                    Platform.runLater(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            successPane.finishCreate();
+                                        }
+                                    });
+                                    break;
+                                } else  {
+                                    // 没 0.5s 检查一次
+                                    try {
+                                        Thread.sleep(500);
+                                    } catch (InterruptedException e1) {
+                                        e1.printStackTrace();
+                                    }
+                                }
+                            }
+                        }
+                    }).start();
                 }
             }
 

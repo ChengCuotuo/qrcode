@@ -14,6 +14,7 @@ public class ParallelCreateQRCode {
     private int height;
     private String format;
     private String targetDirectory;
+    private boolean finished = false;
 
     public ParallelCreateQRCode (int width, int height, String format, String targetDirectory) {
         this.width = width;
@@ -23,9 +24,11 @@ public class ParallelCreateQRCode {
     }
 
     public void parallelCreate(List<Entity> entityList) {
+        finished = false;
         RecursiveAction mainTask = new CreateQRCodeTask(entityList);
         ForkJoinPool pool = new ForkJoinPool(3);
         pool.invoke(mainTask);
+        finished = true;
     }
 
     private class CreateQRCodeTask extends RecursiveAction {
@@ -54,5 +57,9 @@ public class ParallelCreateQRCode {
                 invokeAll(new CreateQRCodeTask(firstHalf), new CreateQRCodeTask(secondHalf));
             }
         }
+    }
+
+    public boolean getFinished () {
+        return finished;
     }
 }

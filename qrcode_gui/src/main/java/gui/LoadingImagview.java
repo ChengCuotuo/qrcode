@@ -4,6 +4,7 @@ package gui;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.image.Image;
@@ -19,8 +20,8 @@ public class LoadingImagview extends ImageView {
 
     // 创建loading 动画
     public void createLoadingAnimation() {
-        setFitWidth(380);
-        setFitHeight(380);
+        setFitWidth(600);
+        setFitHeight(400);
         // 创建待加入的图片
         List<Image> imageList = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
@@ -36,6 +37,7 @@ public class LoadingImagview extends ImageView {
             if (imageIndex == size - 1) {
                 imageIndex = 0;
             }
+//            System.out.println(imageIndex);
         };
 
         loadingAnimation = new Timeline(new KeyFrame(Duration.millis(80), eventEventHandler));
