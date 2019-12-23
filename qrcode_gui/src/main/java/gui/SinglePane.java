@@ -22,7 +22,6 @@ import mysql.ConnectDataBase;
 import entity.Entity;
 import poi.ExtractExcel2Object;
 import qrcode.CreateQRCode;
-import qrcode.ParallelCreateQRCode;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -30,7 +29,6 @@ import java.util.List;
 
 
 public class SinglePane extends Pane {
-    private ParallelCreateQRCode parallelCreateQRCode;
 
     private ImageView qrcodeImg = new ImageView();
     private HBox hbHead = new HBox(10);
@@ -102,7 +100,7 @@ public class SinglePane extends Pane {
         hbHead.getChildren().addAll(new Label("QRCode_NianZuochen"), cbo);
         hbHead.setMargin(cbo, new Insets(5, 0, 10, 130));
 
-        // 时间监听注册
+        // 事件监听注册
         clickCbo();
 
         // 从 excel 导出的窗体
@@ -110,8 +108,6 @@ public class SinglePane extends Pane {
         exportFromExcelStage.setScene(excelScene);
         exportFromExcelStage.setTitle("QRCode_NianZuochen");
         exportFromExcelStage.setResizable(false);
-        // 注册确认导出按钮
-        clickExportFromExcelConfirm();
 
         // 连接数据库
         Scene connectScene = new Scene(connectPane, 320, 280);
@@ -126,10 +122,6 @@ public class SinglePane extends Pane {
         dbExportStage.setScene(dbScene);
         dbExportStage.setTitle("QRCode_NianZuochen");
         dbExportStage.setResizable(false);
-        // 选择 table 的事件监听
-        clickCbTable();
-        // 确认导出的事件监听
-        clickDbConfirmExport();
     }
 
     // 添加 hbbody 内容
@@ -230,14 +222,27 @@ public class SinglePane extends Pane {
                     warningPane.setLbWarning("指定存储路径不存在");
                     warningStage.show();
                 } else {
-                    // System.out.println(fileName + ", " + fileFormat + ", " + width + ", " + height + ", " + path);
-                    // 获取 BufferedImage 并写入文件
-                    String newPath = path + File.separator + fileName + "." + fileFormat;
-                    bfqrcode = CreateQRCode.create(input.getText(), width, height);
-                    boolean result = CreateQRCode.storeImage(bfqrcode, newPath, fileFormat);
-//            System.out.println(result);
                     exportStage.close();
+                    successPane.waitingCreate();
                     successStage.show();
+
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            // System.out.println(fileName + ", " + fileFormat + ", " + width + ", " + height + ", " + path);
+                            // 获取 BufferedImage 并写入文件
+                            String newPath = path + File.separator + fileName + "." + fileFormat;
+                            bfqrcode = CreateQRCode.create(input.getText(), width, height);
+                            boolean result = CreateQRCode.storeImage(bfqrcode, newPath, fileFormat);
+                            Platform.runLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    successPane.finishCreate();
+                                }
+                            });
+                        }
+                    }).start();
+
                 }
 
             }
@@ -260,82 +265,6 @@ public class SinglePane extends Pane {
         });
     }
 
-    // 从 excel 确认导出
-    private void clickExportFromExcelConfirm() {
-        Button btCofirm = excelPane.getBtConfirm();
-        btCofirm.setOnAction(e -> {
-            String sourceFile = excelPane.getSourceFilePath();
-            Integer width = excelPane.getPWidth();
-            Integer height = excelPane.getPHeight();
-            String format = excelPane.getPFileFormat();
-            String targetDirectory = excelPane.getExportDirectory();
-
-            if (sourceFile == null || targetDirectory == null || width == null || height == null || format == null) {
-                warningPane.setLbWarning("信息不完整");
-                warningStage.show();
-            } else {
-                File source = new File(sourceFile);
-                File target = new File(targetDirectory);
-                if (!source.isFile()) {
-                    warningPane.setLbWarning("数据源文件错误");
-                    warningStage.show();
-                } else if (!target.isDirectory()) {
-                    warningPane.setLbWarning("指定存储路径不存在");
-                    warningStage.show();
-                } else {
-                    successPane.waitingCreate();
-                    successStage.show();
-                    // 在新的线程中完成并行导出操作，此时主线程在控制面板
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Class clazz = new Entity().getClass();
-                            ExtractExcel2Object<Entity> excel2Object = new ExtractExcel2Object<>(clazz);
-                            File file = new File(sourceFile);
-                            if (file.exists()) {
-                                List<Entity> entities = excel2Object.extract(file);
-                                parallelCreateQRCode =
-                                        new ParallelCreateQRCode(width, height, format, targetDirectory);
-                                parallelCreateQRCode.parallelCreate(entities);
-                            }
-                            // 当 parallelCreateQRCode.getFinished() 为 true 表示导出完成
-                            while (true) {
-                                if (parallelCreateQRCode.getFinished()) {
-                                    successPane.stopWaitingAnimation();
-                                    // 非主线程修改面板要使用 Platform.runLater进行修改
-                                    Platform.runLater(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            successPane.finishCreate();
-                                        }
-                                    });
-                                    break;
-                                } else  {
-                                    // 没 0.5s 检查一次
-                                    try {
-                                        Thread.sleep(500);
-                                    } catch (InterruptedException e1) {
-                                        e1.printStackTrace();
-                                    }
-                                }
-                            }
-
-                        }
-                    }).start();
-
-                }
-            }
-
-        });
-    }
-
-    private class ExportFromExcelThread implements Runnable {
-        @Override
-        public void run() {
-
-        }
-    }
-
     // 确认连接按钮
     private void clickConnectButton() {
         Button btConnect = connectPane.getBtConnect();
@@ -349,6 +278,7 @@ public class SinglePane extends Pane {
             // 取人连接结果，连接成功，关闭当前窗体，展示导出窗体，否则显示错误信息
             connectDataBase = new ConnectDataBase(ip, port, database, username, password);
             if(connectDataBase.connect()) {
+                dbExportPane.setConnectDataBase(connectDataBase);
                 // 设置 table 中的数据
                 List<String> tables = connectDataBase.getTables();
                 dbExportPane.setTable(tables);
@@ -362,71 +292,4 @@ public class SinglePane extends Pane {
         });
     }
 
-    // 选取 table 的下拉框事件
-    private void clickCbTable() {
-        ComboBox<String> cbTable = dbExportPane.getCbTable();
-        cbTable.setOnAction(e -> {
-            String table = cbTable.getValue();
-            dbExportPane.setContentAndName(connectDataBase.getClumns(table));
-        });
-    }
-
-    // 确认从数据库中导出数据
-    public void clickDbConfirmExport() {
-        Button confirm = dbExportPane.getBtConfirm();
-        confirm.setOnAction(e -> {
-            String tableName = dbExportPane.getTable();
-            String content = dbExportPane.getContent();
-            String name = dbExportPane.getName();
-            List<Entity> entities = connectDataBase.getEntities(tableName, content, name);
-
-            String exportPath = dbExportPane.getExportPath();
-            Integer width = dbExportPane.getPWidth();
-            Integer height = dbExportPane.getPHeight();
-            String format = dbExportPane.getPFileFormat();
-
-            if (exportPath == null || width == null || height == null || format == null) {
-                warningPane.setLbWarning("信息不完整");
-                warningStage.show();
-            } else {
-                File exportFile = new File(exportPath);
-                if (!exportFile.isDirectory()) {
-                    warningPane.setLbWarning("指定存储路径不存在");
-                    warningStage.show();
-                } else {
-                    successPane.waitingCreate();
-                    successStage.show();
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            ParallelCreateQRCode parallelCreateQRCode =
-                                    new ParallelCreateQRCode(width, height, format, exportPath);
-                            parallelCreateQRCode.parallelCreate(entities);
-                            while (true) {
-                                if (parallelCreateQRCode.getFinished()) {
-                                    successPane.stopWaitingAnimation();
-                                    // 非主线程修改面板要使用 Platform.runLater进行修改
-                                    Platform.runLater(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            successPane.finishCreate();
-                                        }
-                                    });
-                                    break;
-                                } else  {
-                                    // 没 0.5s 检查一次
-                                    try {
-                                        Thread.sleep(500);
-                                    } catch (InterruptedException e1) {
-                                        e1.printStackTrace();
-                                    }
-                                }
-                            }
-                        }
-                    }).start();
-                }
-            }
-
-        });
-    }
 }

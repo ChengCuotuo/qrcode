@@ -1,11 +1,5 @@
 package gui;
 
-
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -35,6 +29,7 @@ public class SuccessPane extends StackPane {
     public void stopWaitingAnimation () {
         loadingImagview.getloadingAnimation().stop();
     }
+
     // 返回
     public ImageView getSuccessImage () {
         return successImage;
