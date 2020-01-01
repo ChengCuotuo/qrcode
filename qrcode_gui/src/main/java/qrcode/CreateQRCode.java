@@ -5,6 +5,7 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import org.apache.commons.io.IOUtils;
@@ -25,7 +26,7 @@ public class CreateQRCode {
 
    public static BufferedImage create(String content, int width, int height) {
         // 定义二维码参数
-        HashMap hints = new HashMap();
+        HashMap<EncodeHintType, Object> hints = new HashMap();
         // 确定字符集的编码
         hints.put(EncodeHintType.CHARACTER_SET, "utf-8");
         // 确定纠错等级
@@ -38,12 +39,8 @@ public class CreateQRCode {
             // 确定内容，编码格式，宽，高，其他配置参数，获取二维码矩阵值
             // 开始的时候是将图片写入文件之后再读取，无法实现，文件还没有写入磁盘的时候就已经读取了，完全读取不到
             BitMatrix bitMatrix = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, width, height, hints);
-            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    image.setRGB(x, y, bitMatrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
-                }
-            }
+            // 写入到输入流中
+            BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix);
             return image;
 
         } catch (WriterException e) {
